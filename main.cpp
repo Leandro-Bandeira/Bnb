@@ -3,6 +3,7 @@ using namespace std;
 
 #include "data.h"
 #include "hungarian.h"
+#include <vector>
 
 int main(int argc, char** argv) {
 
@@ -26,11 +27,78 @@ int main(int argc, char** argv) {
 
 	cout << "Assignment" << endl;
 	hungarian_print_assignment(&p);
+	
+	
+	/* Criação da matriz que retorna do problema de AP	*/	
+	int rows = p.num_rows;
+	int cols = p.num_cols;
+	int ** apMatrix = new int *[p.num_rows];
+	for(int i = 0; i < rows; i++) {
 
+		for(int j = 0; j < cols; j++) {
+
+			apMatrix[i] = new int[cols];
+		}
+	}
+
+	for(int i = 0; i < rows; i++) {
+
+		for(int j = 0; j < cols; j++) {
+
+			apMatrix[i][j] = p.assignment[i][j];
+		}
+	}
+	
+	/* Fim da criação de matriz	*/
 	hungarian_free(&p);
 	for (int i = 0; i < data->getDimension(); i++) delete [] cost[i];
 	delete [] cost;
 	delete data;
+	
+	/* Vamos percorrer todos as linhas e para cada linha vamos achar todos os subtours, ou seja até i = j	*/
+	
+	int alocTask;
+	int index_subtour = 0;
+	vector < vector < int > > subtours;
+	int it = 0;
+	while(it < rows) {
 
+		vector < int > subtour_i;
+		subtour_i.push_back(index_subtour);
+		alocTask = index_subtour;
+		for(int i = alocTask; i < rows; i++) {
+		
+			for(int j = i + 1; j < cols; j++) {
+
+				if(apMatrix[i][j]) {
+
+					alocTask = j; // Armazena o indice da tarefa que i foi alocado
+					break;
+				}
+			}
+			
+			
+			subtour_i.push_back(alocTask);
+			
+		}
+		if(alocTask == index_subtour) {
+			subtours.push_back(subtour_i);
+		}
+		
+		subtour_i.clear();
+		index_subtour += 1;
+		it += 1;
+
+	}
+
+	for(auto line : subtours) {
+		
+		for(int i = 0; i < line.size(); i++) {
+
+			cout << line[i] << " ";
+		}
+		cout << endl;
+			
+	}
 	return 0;
 }

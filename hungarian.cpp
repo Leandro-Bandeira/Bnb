@@ -48,6 +48,7 @@ void hungarian_print_matrix(int** C, int rows, int cols) {
   fprintf(stderr, "\n");
 }
 
+
 void hungarian_print_assignment(hungarian_problem_t* p) {
   hungarian_print_matrix(p->assignment, p->num_rows, p->num_cols) ;
 }
