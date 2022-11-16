@@ -1,4 +1,5 @@
 #include <iostream>
+#include <algorithm>
 using namespace std;
 
 #include "data.h"
@@ -61,35 +62,42 @@ int main(int argc, char** argv) {
 	int index_subtour = 0;
 	vector < vector < int > > subtours;
 	int it = 0;
+	/* Itera linha por linha até a última, procura-se a alocação a partir da linha fixada dada por alocTask, após isso repete o loop com a matriz fixada na task alo	cada, se a iteração encontra o mesmo nó que o inicial, então temos um arco*/
+
 	while(it < rows) {
 
 		vector < int > subtour_i;
-		subtour_i.push_back(index_subtour);
+		subtour_i.push_back(index_subtour + 1);
 		alocTask = index_subtour;
-		for(int i = alocTask; i < rows; i++) {
-		
-			for(int j = i + 1; j < cols; j++) {
+			
+		while(alocTask < rows) {
+			for(int j = 0; j < cols; j++) {
 
-				if(apMatrix[i][j]) {
-
+				if(apMatrix[alocTask][j]) {
 					alocTask = j; // Armazena o indice da tarefa que i foi alocado
 					break;
 				}
 			}
+			subtour_i.push_back(alocTask + 1);
 			
-			
-			subtour_i.push_back(alocTask);
-			
+			if(alocTask == index_subtour) {
+				subtours.push_back(subtour_i);
+				break;
+			}
+		
 		}
-		if(alocTask == index_subtour) {
-			subtours.push_back(subtour_i);
-		}
+
 		
 		subtour_i.clear();
 		index_subtour += 1;
 		it += 1;
 
 	}
+	
+	sort(subtours.begin(), subtours.end(), [=](auto  A, auto B){
+			return A.size() >  B.size();
+	}
+	);
 
 	for(auto line : subtours) {
 		
