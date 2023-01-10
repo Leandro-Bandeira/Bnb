@@ -75,28 +75,21 @@ NodeInfo* instanceNode(vector < vector < int > >& subtours, double obj_value, in
 /* Retorna a solução em formato de subtours	*/
 vector < vector < int > >*  hungarian_solve(Data* data, vector < pair < int, int > >& tree_forbidden_arcs, double& obj_value) {
 	
-	vector < vector < int > >* subtours = new vector < vector < int >>();
+	//vector < vector < int > >* subtours = new vector < vector < int >>();
 
 	double **cost = new double*[data->getDimension()];
 	for (int i = 0; i < data->getDimension(); i++){
 		cost[i] = new double[data->getDimension()];
 		for (int j = 0; j < data->getDimension(); j++){
 			
-			if(i == j) {
-				cost[i][j] = 10000000;
-			}
-				
-			else {
-				cost[i][j] = data->getDistance(i, j);
-			}	
-			
+			cost[i][j] = data->getDistance(i, j);
 		}
 	}
 	
 	for(auto arc : tree_forbidden_arcs) {
-			
-		cost[arc.first - 1][arc.second - 1] = 100000000;
-		cost[arc.second - 1][arc.first - 1] = 100000000;
+		cout << arc.first << " " << arc.second << endl;
+		cost[arc.first - 1][arc.second - 1] = 99999999;
+		cost[arc.second - 1][arc.first - 1] = 99999999;
 	}
 	
 	hungarian_problem_t p;
@@ -135,53 +128,73 @@ vector < vector < int > >*  hungarian_solve(Data* data, vector < pair < int, int
 	for (int i = 0; i < data->getDimension(); i++) delete [] cost[i];
 	delete [] cost;
 	
-	/* Vamos percorrer todos as linhas e para cada linha vamos achar todos os subtours, ou seja até i = j	*/
 	
-	int alocTask;
-	int index_subtour = 0;
-	int it = 0;
-	/* Itera linha por linha até a última, procura-se a alocação a partir da linha fixada dada por alocTask, após isso repete o loop com a matriz fixada na task alo	cada, se a iteração encontra o mesmo nó que o inicial, então temos um arco*/
+	/* Organiza os subtours do menor arco para o maior	*/
+	//sort(subtours->begin(), subtours->end(), [=](auto  A, auto B){
+	//		return A.size() <  B.size(); 
+	//}
+	//);   
+	
 
-	while(it < rows) {
+	std::vector < std::vector < int > > subtours; // subtours da solução do problema APtsp
+	  
+	bool verticeFound = false;// Utilizado para verificar se o vértice está ou não em um subtour
 
-		vector < int > subtour_i;
-		subtour_i.push_back(index_subtour + 1);
-		alocTask = index_subtour;
-			
-		while(alocTask < rows) {
+	for(int i = 0; i < rows; i++) {
+		std::vector < int > subtour;
+		
+		/* Verifica se o vertice i está ou não em algum subtour, caso não, podemos fazer um subtour com ele no inicio	*/
+		for(auto line : subtours) {
+
+			for(int k = 0; k < line.size(); k++) {
+				
+				if(i == line[k]) {
+					
+					verticeFound = true;
+
+				}
+			}
+		}
+		
+		if(verticeFound) {
+			verticeFound = false;
+			continue;
+		}
+
+		/* Criando um novo subtour, percorremos as colunas até achar em qual foi alocado, após isso podemos parar o loop e verificar se temos um subtour
+		 * Que é exatamente quando o ponto inicial é igual ao ponto final	*/
+		subtour.push_back(i);
+		int line = i;
+		int j = 0;
+		while(1) { 
+					
 			for(int j = 0; j < cols; j++) {
 
-				if(apMatrix[alocTask][j]) {
-					alocTask = j; // Armazena o indice da tarefa que i foi alocado
+				if(apMatrix[line][j] == 1) {
+					subtour.push_back(j);
+					line = j;
 					break;
 				}
 			}
-			subtour_i.push_back(alocTask + 1);
-			
-			if(alocTask == index_subtour) {
-				subtours->push_back(subtour_i);
+			if(line == i) {
+
 				break;
 			}
 		
 		}
-
 		
-		subtour_i.clear();
-		index_subtour += 1;
-		it += 1;
-
+		//Adiciona ao subtour a coletania de subtours
+		subtours.push_back(subtour);
 	}
-	
-	/* Organiza os subtours do menor arco para o maior	*/
-	sort(subtours->begin(), subtours->end(), [=](auto  A, auto B){
-			return A.size() <  B.size(); 
-	}
-	);   
-	
-
 
 	
-	for(auto line: *subtours) {
+	// Organiza os subtours do menor para o maior
+	std::sort(subtours.begin(), subtours.end(), [=](auto A, auto B) {
+
+				return A.size() < B.size();
+	});
+
+	for(auto line: subtours) {
 
 		for(int i = 0; i < line.size(); i++) {
 
@@ -190,9 +203,10 @@ vector < vector < int > >*  hungarian_solve(Data* data, vector < pair < int, int
 		cout << endl;
 	}
 	
-
-
-	return subtours;
+	
+	
+	getchar();
+	//return subtours;
 	
 
 }
