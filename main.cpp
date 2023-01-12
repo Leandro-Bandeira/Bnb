@@ -73,10 +73,8 @@ NodeInfo* instanceNode(vector < vector < int > >& subtours, double obj_value, in
 }
 
 /* Retorna a solução em formato de subtours	*/
-vector < vector < int > >*  hungarian_solve(Data* data, vector < pair < int, int > >& tree_forbidden_arcs, double& obj_value) {
-	
-	//vector < vector < int > >* subtours = new vector < vector < int >>();
-
+void hungarian_solve(Data* data, NodeInfo* node) {
+		
 	double **cost = new double*[data->getDimension()];
 	for (int i = 0; i < data->getDimension(); i++){
 		cost[i] = new double[data->getDimension()];
@@ -86,18 +84,12 @@ vector < vector < int > >*  hungarian_solve(Data* data, vector < pair < int, int
 		}
 	}
 	
-	for(auto arc : tree_forbidden_arcs) {
-		cout << arc.first << " " << arc.second << endl;
-		cost[arc.first - 1][arc.second - 1] = 99999999;
-		cost[arc.second - 1][arc.first - 1] = 99999999;
-	}
-	
 	hungarian_problem_t p;
 	int mode = HUNGARIAN_MODE_MINIMIZE_COST;
 	hungarian_init(&p, cost, data->getDimension(), data->getDimension(), mode); // Carregando o problema
 
-	obj_value = hungarian_solve(&p);
-	cout << "Obj. value: " << obj_value << endl;
+	node->lower_bound = hungarian_solve(&p); // Armazena o valor da função objetivo do algoritmo hungaro
+	cout << "Obj. value: " << node->lower_bound << endl;
 
 	cout << "Assignment" << endl;
 	hungarian_print_assignment(&p);
@@ -129,14 +121,9 @@ vector < vector < int > >*  hungarian_solve(Data* data, vector < pair < int, int
 	delete [] cost;
 	
 	
-	/* Organiza os subtours do menor arco para o maior	*/
-	//sort(subtours->begin(), subtours->end(), [=](auto  A, auto B){
-	//		return A.size() <  B.size(); 
-	//}
-	//);   
 	
+	vector < vector < int > > subtours;
 
-	std::vector < std::vector < int > > subtours; // subtours da solução do problema APtsp
 	  
 	bool verticeFound = false;// Utilizado para verificar se o vértice está ou não em um subtour
 
@@ -203,12 +190,46 @@ vector < vector < int > >*  hungarian_solve(Data* data, vector < pair < int, int
 		cout << endl;
 	}
 	
+	cout << "here" << endl;
+	node->subtours = subtours; // atualiza o subtours do nó
 	
-	
-	getchar();
-	//return subtours;
-	
+	/* Verifica se o nó é viável ou não	*/
+	if(node->subtours.size() > 1) {
 
+		node->feasible = true;
+	}
+	else {
+
+		node->feasible = false;
+	}
+	
+	int id = 0;
+	/* Algoritmo para armzenar o subtour de menor índice	*/
+	if(!node->feasible) {
+		
+		int lower_size = node->subtours[0].size();
+
+		for(int i = 0; i < node->subtours.size(); i++) {
+
+			if(node->subtours[i].size() < lower_size) {
+
+				lower_size = node->subtours[i].size();
+				id = i;
+			}
+		}
+
+		node->chosen = id; // Armazena o subtour de menor indice
+
+	}
+	
+	/* Cria os arcos proibidos	*/
+	for(int i = 0; i < node->subtours[id].size() - 1; i++) {
+		
+		int first = node->subtours[id][i];
+		int second = node->subtours[id][i + 1];
+
+		node->forbidden_arcs.push_back(make_pair(first, second));
+	}
 }
 
 /* Vamos retornar um nó de forma aleatoria	*/
@@ -229,59 +250,25 @@ NodeInfo* chooseNode(vector < NodeInfo* >& tree, int& loc) {
 	loc = i;
 }
 
+/* Função que resolve o BNB	*/
 void bnb_solve(Data* data) {
 	double obj_value;
 	int n = data->getDimension(); // Tamanho da instancia
-
-	vector <pair < int, int >> tree_forbidden_arcs; // Conjunto de todos os arcos proibidos da arvore
-
-	vector < vector < int > >* subtours = hungarian_solve(data, tree_forbidden_arcs, obj_value);
-	vector < NodeInfo* > tree; // lista de nós, que representa uma árvore
-	int loc; //Localização do nó
-	/* instanceNode configura os dados da solução, enviamos a raiz que é o primeiro problema	*/
-	NodeInfo* root = instanceNode(*subtours, obj_value, n);
-	tree.push_back(root);
-
-	/* Algoritmo BnB	*/
-	double upper_bound = numeric_limits <double>::infinity(); // Seta o upperbound como infinito
 	
+	NodeInfo root; // Raiz do problema
+
+	hungarian_solve(data, &root);
+
+	list < NodeInfo > tree; // Criação da nossa árvore
+
+	tree.push_back(root); // Adiciona o primeiro nó que é a raiz
+
+	double upper_bound = numeric_limits<double>::infinity();
+
 	while(!tree.empty()) {
-		
-			NodeInfo*  node_chosen = chooseNode(tree, loc); // Retorna um nó de forma aleatoria
-			
-			/* Se a solução tiver um lower_bound maior do que upper_bound, vamos desconsiderá-la, deletamos ela da região de memória	*/
-			if(node_chosen->lower_bound > upper_bound) {
-				cout << "entrou aqui" << endl;
-				tree.erase(tree.begin() + loc);
-				delete node_chosen;
-				continue;
-			}
-			// Se a minha solução é viável, mudamos o upper_bound
-			if(node_chosen->feasible)
-				upper_bound = min(upper_bound, node_chosen->lower_bound);
-			
-			// Salva todos os arcos proibidos
-			tree_forbidden_arcs.push_back(make_pair(node_chosen->forbidden_arcs[0].first, node_chosen->forbidden_arcs[0].second));
-			cout << "Arcos proibidos: ---------------------------------------" << endl;
 
-			for(auto arc : tree_forbidden_arcs) {
-				cout << arc.first << " " << arc.second << endl;
-			}
-			cout << "-----------------------------------------------" << endl;
-			delete subtours;
-			/* Vamos solucionar o hungarian sempre com os primeiro arcos proibidos, pois eles tem o menor indice	*/
-			subtours = hungarian_solve(data, tree_forbidden_arcs, obj_value);
-			/* Inicializa um novo nó com as caracteristicas do subtour do anterior	*/
-			NodeInfo* node = instanceNode(*subtours, obj_value, n);	
-			tree.erase(tree.begin() + loc); // Apaga o nó anterior utilzizado para criar o nó atual
-			delete node_chosen; // deleta da regiao de memoria
-			tree.push_back(node);
-			cout << "uperBound: " << upper_bound << endl;
-			getchar();
+
 	}
-	
-	cout << "saiu" << endl;
-	cout << "solucao Otima: " << upper_bound << endl;
 }
 
 
