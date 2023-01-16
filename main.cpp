@@ -17,9 +17,14 @@ typedef struct {
 	double lower_bound; // Custo total da solução do algoritmo hungaro
 	int chosen; // Indice do menor subtour
 	double feasible; // Indica se a solução AP_TSP é viável
+	
 
 }NodeInfo;
 
+typedef struct {
+	list < NodeInfo >::iterator it;
+
+}Node;
 
 
 NodeInfo* instanceNode(vector < vector < int > >& subtours, double obj_value, int n) {
@@ -93,7 +98,6 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 
 	cout << "Assignment" << endl;
 	hungarian_print_assignment(&p);
-	
 	
 	/* Criação da matriz que retorna do problema de AP	*/	
 	int rows = p.num_rows;
@@ -186,25 +190,25 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 		for(int i = 0; i < line.size(); i++) {
 
 			cout << line[i] << " ";
+			continue;
 		}
 		cout << endl;
 	}
 	
-	cout << "here" << endl;
 	node->subtours = subtours; // atualiza o subtours do nó
 	
 	/* Verifica se o nó é viável ou não	*/
 	if(node->subtours.size() > 1) {
 
-		node->feasible = true;
+		node->feasible = false;
 	}
 	else {
 
-		node->feasible = false;
+		node->feasible = true;
 	}
 	
 	int id = 0;
-	/* Algoritmo para armzenar o subtour de menor índice	*/
+	/* Algoritmo para armazenar o indice do subtour de menor tamanho	*/
 	if(!node->feasible) {
 		
 		int lower_size = node->subtours[0].size();
@@ -218,8 +222,8 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 			}
 		}
 
-		node->chosen = id; // Armazena o subtour de menor indice
-
+		node->chosen = id; // indice do subtour de menor tamanho
+		
 	}
 	
 	/* Cria os arcos proibidos	*/
@@ -230,24 +234,28 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 
 		node->forbidden_arcs.push_back(make_pair(first, second));
 	}
+	
 }
 
 /* Vamos retornar um nó de forma aleatoria	*/
-NodeInfo* chooseNode(vector < NodeInfo* >& tree, int& loc) {
+list < NodeInfo >::iterator chooseNode(list < NodeInfo > tree) {
 	unsigned seed = time(0);
 	srand(seed);
-	int i = rand() % tree.size();
-	int j = 0;	
-	for(auto node : tree) {
+	int i = rand() % tree.size(); // Escolhe um indice aleatorio da arvore
+	int j = 0;
+	list < NodeInfo >::iterator it;	
+	Node* node;
+	for(it = tree.begin(); it != tree.end(); ++it) {
 
 		if(j == i) {
-
-			return node;
+			return it;
+			break;
 		}
 		j++;
+
 	}
-	return NULL;
-	loc = i;
+	
+
 }
 
 /* Função que resolve o BNB	*/
@@ -262,13 +270,21 @@ void bnb_solve(Data* data) {
 	list < NodeInfo > tree; // Criação da nossa árvore
 
 	tree.push_back(root); // Adiciona o primeiro nó que é a raiz
-
 	double upper_bound = numeric_limits<double>::infinity();
-
+	
 	while(!tree.empty()) {
 
-
+		auto node = chooseNode(tree); // Escolhemos aleatoriamente um nó da árvore
+		
+		
+		tree.erase(node);
+		
+		cout << tree.size() << endl;
+		getchar();
+		break;
 	}
+
+
 }
 
 
