@@ -21,62 +21,42 @@ typedef struct {
 
 }NodeInfo;
 
-typedef struct {
-	list < NodeInfo >::iterator it;
-
-}Node;
 
 
-NodeInfo* instanceNode(vector < vector < int > >& subtours, double obj_value, int n) {
+class Graph {
 	
-	NodeInfo* node = new NodeInfo();
-	/* Inicializa os subtours e o valor do lower bound dados	*/
-	node->subtours = subtours;
-	node->lower_bound = obj_value;
-	
-	/* Indicação se a solução eh viável ou não	*/
 
-	if(subtours.size() > 1) {
-		node->feasible = false;
-	}
-	else {
-		for(auto tour : subtours) {
-			
-			if(tour.size() - 1 != n) {
-				node->feasible = false;
-			}
-			else {
-				node->feasible = true;
-			}
-		}
-	}
-	
-	int size_lower_arc = subtours[0].size(); // A matriz de subtours organiza os tours de forma crescente, logo o primeiro é o menor arco
-	
-	/* Restringe todos os vértices que estão no menor arco, e vamos restringir todos os nós daquele subtour*/
-	int j = 0;
-	bool lower_arcf = false;
-	for(vector < int > subtour : subtours) {
+	public:
+		Graph(int size, list < NodeInfo > *tree);
+		void DFS(int vertice);
 		
-		if(subtour.size() == size_lower_arc) {
-			if(!lower_arcf){
 
-				node->chosen = j;
-				lower_arcf = true;
-			}
-				
-			for(int i = 0; i < subtour.size() - 1; i++) {
-				node->forbidden_arcs.push_back(make_pair(subtour[i], subtour[i + 1]));
-			} 
+	private:
 
-		}
-		
-		j++;
-	}
+		int numVertices;
+		list < int > *adjList;
+		vector < bool > *visited; // Indica pelo indice se foi visitado ou não
+		list < NodeInfo > *tree; // Aponta para a árvore do problema
+
+
 	
-	return node;
+};
+
+
+Graph::Graph(int size, list < NodeInfo > *tree) {
+	int numVertices = size;
+	this->tree = tree;
+	adjList = new list < int >[size];
+	visited = new vector < bool > [size];
+	
 }
 
+void Graph::DFS(int vertice) {
+	
+	(*visited)[vertice] = true;
+
+
+}
 /* Retorna a solução em formato de subtours	*/
 void hungarian_solve(Data* data, NodeInfo* node) {
 		
@@ -184,7 +164,7 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 
 				return A.size() < B.size();
 	});
-
+	
 	for(auto line: subtours) {
 
 		for(int i = 0; i < line.size(); i++) {
@@ -208,17 +188,22 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 	}
 	
 	int id = 0;
-	/* Algoritmo para armazenar o indice do subtour de menor tamanho	*/
+
+	/* Algoritmo para achar o subtour de menor indice	*/
+	/* Como a matriz está organizada de subtours do menor para o maior, o primeiro subtour possui o menor tamanho	*/
+
 	if(!node->feasible) {
 		
 		int lower_size = node->subtours[0].size();
+		int lower_id = node->subtours[0][0];
 
-		for(int i = 0; i < node->subtours.size(); i++) {
+		for(int i = 1; i < node->subtours.size(); i++) {
 
-			if(node->subtours[i].size() < lower_size) {
+			if(node->subtours[i].size() == lower_size and node->subtours[i][0] < lower_id ) {
 
-				lower_size = node->subtours[i].size();
 				id = i;
+				lower_id = node->subtours[i][0];
+
 			}
 		}
 
@@ -235,25 +220,22 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 		node->forbidden_arcs.push_back(make_pair(first, second));
 	}
 	
+	cout << "Node Chosen: ";
+	for(int i = 0; i < node->subtours[node->chosen].size(); i++) {
+
+		cout << node->subtours[node->chosen][i] << " ";
+	}
+	cout << endl;
+	
 }
 
 /* Vamos retornar um nó de forma aleatoria	*/
-list < NodeInfo >::iterator chooseNode(list < NodeInfo > tree) {
+void chooseNode(list < NodeInfo > tree) {
 	unsigned seed = time(0);
 	srand(seed);
 	int i = rand() % tree.size(); // Escolhe um indice aleatorio da arvore
 	int j = 0;
 	list < NodeInfo >::iterator it;	
-	Node* node;
-	for(it = tree.begin(); it != tree.end(); ++it) {
-
-		if(j == i) {
-			return it;
-			break;
-		}
-		j++;
-
-	}
 	
 
 }
@@ -273,13 +255,6 @@ void bnb_solve(Data* data) {
 	double upper_bound = numeric_limits<double>::infinity();
 	
 	while(!tree.empty()) {
-
-		auto node = chooseNode(tree); // Escolhemos aleatoriamente um nó da árvore
-		
-		
-		tree.erase(node);
-		
-		cout << tree.size() << endl;
 		getchar();
 		break;
 	}
