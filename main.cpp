@@ -28,14 +28,14 @@ class Graph {
 
 	public:
 		Graph(int size, list < NodeInfo > *tree);
-		void DFS(int vertice);
-		
-
+		NodeInfo* DFS(NodeInfo* vertex);
+		void addVertexAdj(NodeInfo* vertex);		
+	
 	private:
 
 		int numVertices;
-		list < int > *adjList;
-		vector < bool > *visited; // Indica pelo indice se foi visitado ou não
+		list < NodeInfo > *adjList;
+		vector < NodeInfo > *visited; // Indica pelo indice se foi visitado ou não
 		list < NodeInfo > *tree; // Aponta para a árvore do problema
 
 
@@ -46,14 +46,73 @@ class Graph {
 Graph::Graph(int size, list < NodeInfo > *tree) {
 	int numVertices = size;
 	this->tree = tree;
-	adjList = new list < int >[size];
-	visited = new vector < bool > [size];
+	adjList = new list < NodeInfo >[size];
+	visited = new vector < NodeInfo > [size];
 	
 }
 
-void Graph::DFS(int vertice) {
+
+void Graph::addVertexAdj(NodeInfo* vertex) {
 	
-	(*visited)[vertice] = true;
+	for(auto vertexA : *tree) {
+		
+		bool verification_visited = false;
+
+		/* Verifica se o vértice vizinho já foi visitado ou não	*/
+		for(auto visitedVertex : *visited) {
+
+			if(visitedVertex.forbidden_arcs == vertexA.forbidden_arcs) {
+
+				verification_visited = true;
+			} 
+		} 
+		/* Verifica se os arcos proibidos deles são iguais, dizendo que são adjacentes	*/
+		if(vertexA.forbidden_arcs == vertex->forbidden_arcs and !verification_visited ) {
+		
+			/* Por fim verificamos se o vértice está ou não na lista de adjacentes	*/
+			bool verification_adjVertex = false;
+
+			for(auto adjVertex : *adjList) {
+
+				if(adjVertex.forbidden_arcs == vertexA.forbidden_arcs) {
+
+					verification_adjVertex = true;
+				}
+			}
+			
+			if(!verification_adjVertex) {
+
+				adjList->push_back(vertexA);
+			}
+		}
+
+	}
+}
+
+
+/* Inicializa a partir de um nó aleatorio que chamaremos de root	*/
+NodeInfo* Graph::DFS(NodeInfo *root) {
+	
+	visited->push_back(*root); // Adiciona o vértice a aqueles que foram visitados
+	addVertexAdj(root);
+
+	while(!adjList->empty()) {
+		/* Adiciona o ultimo elemento do stack aos visitados	*/
+		/* Além disso, adiciona a lista de vértices adjacentes	*/
+		NodeInfo nodeLast = adjList->back();
+		visited->push_back(nodeLast);
+		adjList->pop_back(); // Remove da lista o ultimo elemento
+		addVertexAdj(&nodeLast);
+		cout << "oi" << endl;
+	}
+
+	NodeInfo* lastNode = new NodeInfo;
+
+	*lastNode = visited->back();
+
+	return lastNode;
+
+
 
 
 }
@@ -230,13 +289,27 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 }
 
 /* Vamos retornar um nó de forma aleatoria	*/
-void chooseNode(list < NodeInfo > tree) {
+NodeInfo* chooseNode(list < NodeInfo >& tree) {
 	unsigned seed = time(0);
 	srand(seed);
 	int i = rand() % tree.size(); // Escolhe um indice aleatorio da arvore
 	int j = 0;
-	list < NodeInfo >::iterator it;	
+
+	/* Escolhemos um vértice aleatorio para iniciar o problema */
+	list < NodeInfo >::iterator it;
+	Graph graph(tree.size(), &tree);
+	NodeInfo* chosenNode;
+	for(it = tree.begin(); it != tree.end(); ++it) {
+
+		if(j == i) {
+
+			chosenNode = graph.DFS(&(*it));
+			break;
+		}
+		j++;
+	}
 	
+	return chosenNode;
 
 }
 
@@ -255,7 +328,12 @@ void bnb_solve(Data* data) {
 	double upper_bound = numeric_limits<double>::infinity();
 	
 	while(!tree.empty()) {
-		getchar();
+		auto node = chooseNode(tree);
+		
+		if(node->lower_bound > upper_bound) {
+			
+			continue;
+		}
 		break;
 	}
 
