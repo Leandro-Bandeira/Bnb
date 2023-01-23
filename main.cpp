@@ -29,7 +29,8 @@ class Graph {
 	public:
 		Graph(int size, list < NodeInfo > *tree);
 		NodeInfo* DFS(NodeInfo* vertex);
-		void addVertexAdj(NodeInfo* vertex);		
+		void addVertexAdj(NodeInfo* vertex);
+		~Graph();
 	
 	private:
 
@@ -101,24 +102,32 @@ NodeInfo* Graph::DFS(NodeInfo *root) {
 		/* Além disso, adiciona a lista de vértices adjacentes	*/
 		NodeInfo nodeLast = adjList->back();
 		visited->push_back(nodeLast);
+		cout << nodeLast.forbidden_arcs.size() << endl;
 		adjList->pop_back(); // Remove da lista o ultimo elemento
 		addVertexAdj(&nodeLast);
-		cout << "oi" << endl;
+		cout << "here" << endl;
 	}
 
-	NodeInfo* lastNode = new NodeInfo;
-
+	NodeInfo* lastNode = new NodeInfo();
 	*lastNode = visited->back();
-
 	return lastNode;
 
 
 
 
 }
+
+Graph::~Graph() {
+	
+	delete[] visited;
+
+	delete[] adjList;
+
+}
 /* Retorna a solução em formato de subtours	*/
 void hungarian_solve(Data* data, NodeInfo* node) {
 		
+	
 	double **cost = new double*[data->getDimension()];
 	for (int i = 0; i < data->getDimension(); i++){
 		cost[i] = new double[data->getDimension()];
@@ -128,6 +137,12 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 		}
 	}
 	
+	for(int i = 0; i < node->forbidden_arcs.size(); i++) {
+		
+		int first = node->forbidden_arcs[i].first;
+		int second = node->forbidden_arcs[i].second;
+		cost[first][second] = 99999;
+	}
 	hungarian_problem_t p;
 	int mode = HUNGARIAN_MODE_MINIMIZE_COST;
 	hungarian_init(&p, cost, data->getDimension(), data->getDimension(), mode); // Carregando o problema
@@ -164,10 +179,8 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 	delete [] cost;
 	
 	
-	
 	vector < vector < int > > subtours;
 
-	  
 	bool verticeFound = false;// Utilizado para verificar se o vértice está ou não em um subtour
 
 	for(int i = 0; i < rows; i++) {
@@ -217,7 +230,6 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 		subtours.push_back(subtour);
 	}
 
-	
 	// Organiza os subtours do menor para o maior
 	std::sort(subtours.begin(), subtours.end(), [=](auto A, auto B) {
 
@@ -270,15 +282,8 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 		
 	}
 	
-	/* Cria os arcos proibidos	*/
-	for(int i = 0; i < node->subtours[id].size() - 1; i++) {
-		
-		int first = node->subtours[id][i];
-		int second = node->subtours[id][i + 1];
+	node->forbidden_arcs.clear(); // Limpa o vetor para evitar erros
 
-		node->forbidden_arcs.push_back(make_pair(first, second));
-	}
-	
 	cout << "Node Chosen: ";
 	for(int i = 0; i < node->subtours[node->chosen].size(); i++) {
 
@@ -289,17 +294,17 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 }
 
 /* Vamos retornar um nó de forma aleatoria	*/
-NodeInfo* chooseNode(list < NodeInfo >& tree) {
+NodeInfo* chooseNode(list < NodeInfo >* tree) {
 	unsigned seed = time(0);
 	srand(seed);
-	int i = rand() % tree.size(); // Escolhe um indice aleatorio da arvore
+	int i = rand() % tree->size(); // Escolhe um indice aleatorio da arvore
 	int j = 0;
 
 	/* Escolhemos um vértice aleatorio para iniciar o problema */
 	list < NodeInfo >::iterator it;
-	Graph graph(tree.size(), &tree);
+	Graph graph(tree->size(), tree);
 	NodeInfo* chosenNode;
-	for(it = tree.begin(); it != tree.end(); ++it) {
+	for(it = tree->begin(); it != tree->end(); ++it) {
 
 		if(j == i) {
 
@@ -327,14 +332,97 @@ void bnb_solve(Data* data) {
 	tree.push_back(root); // Adiciona o primeiro nó que é a raiz
 	double upper_bound = numeric_limits<double>::infinity();
 	
+	int k = 0;
 	while(!tree.empty()) {
-		auto node = chooseNode(tree);
 		
+		cout << "--------------------------------------------------------------------------------------------------------" << endl;
+		cout << "interacao: " << k << endl;
+		int j = 0;
+		for(list < NodeInfo >::iterator it = tree.begin(); it != tree.end(); ++it) {
+			
+			cout << "Arcos probidio na nó: " << j << endl;
+
+			for(int i = 0; i < (*it).forbidden_arcs.size(); i++) {
+				
+				cout << (*it).forbidden_arcs[i].first << " " << (*it).forbidden_arcs[i].second << endl;
+
+			}
+			
+			j++;
+		}
+		
+		cout << "--------------------------------------------------------------------------------------------------------" << endl;
+		auto node = chooseNode(&tree);
+		
+		cout << "Arcos proibidos do nó escolhido: ";
+		for(int i = 0; i < node->forbidden_arcs.size(); i++) {
+
+			cout << node->forbidden_arcs[i].first << " " << node->forbidden_arcs[i].second << endl;
+		}
+		hungarian_solve(data, node);
+
+		
+
+		cout << "Antes do primeiro if" << endl;
 		if(node->lower_bound > upper_bound) {
 			
+
+			for(list < NodeInfo >::iterator it = tree.begin(); it != tree.end(); ++it) {
+				
+				if((*it).forbidden_arcs == node->forbidden_arcs) {
+
+					tree.erase(it);
+					break;
+				} 
+
+			}
+
+
 			continue;
 		}
-		break;
+
+		if(node->feasible) {
+			upper_bound = min(upper_bound, node->lower_bound);
+		}
+		
+		else {
+			
+			cout << "antes do primeiro for" << endl;
+			int j = node->chosen;
+			for(int i = 0; i < node->subtours[j].size() - 1; i++) {
+				
+			
+				NodeInfo n;
+				n.forbidden_arcs = node->forbidden_arcs;
+
+				n.forbidden_arcs.push_back(make_pair(node->subtours[j][i], node->subtours[j][i+1]));
+				
+				tree.push_back(n);
+				
+				cout << "Arcos proibidos: ";
+				for(int i = 0; i < n.forbidden_arcs.size(); i++) {
+					
+					cout << n.forbidden_arcs[i].first << " " << n.forbidden_arcs[i].second << endl;
+
+				}
+			}
+
+		
+			cout << "Apos o segundo for" << endl;
+		}
+			
+			
+		for(list < NodeInfo >::iterator it = tree.begin(); it != tree.end(); ++it) {
+				
+				if((*it).forbidden_arcs == node->forbidden_arcs) {
+					tree.erase(it);
+					break;
+				} 
+
+		}
+		cout << "Apos o ultimo for" << endl;
+		k++;
+		getchar();
 	}
 
 
