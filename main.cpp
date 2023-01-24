@@ -55,20 +55,53 @@ Graph::Graph(int size, list < NodeInfo > *tree) {
 
 void Graph::addVertexAdj(NodeInfo* vertex) {
 	
+	
 	for(auto vertexA : *tree) {
 		
+	
 		bool verification_visited = false;
-
 		/* Verifica se o vértice vizinho já foi visitado ou não	*/
 		for(auto visitedVertex : *visited) {
-
 			if(visitedVertex.forbidden_arcs == vertexA.forbidden_arcs) {
-
 				verification_visited = true;
 			} 
 		} 
 		/* Verifica se os arcos proibidos deles são iguais, dizendo que são adjacentes	*/
-		if(vertexA.forbidden_arcs == vertex->forbidden_arcs and !verification_visited ) {
+
+		bool verification_equal_arcs = false;
+		
+		
+		for(int i = 0; i < vertex->forbidden_arcs.size(); i++) {
+			
+			int first = vertex->forbidden_arcs[i].first;
+			int second = vertex->forbidden_arcs[i].second;
+			
+			int flag = 0;
+			for(int j = 0; j < vertexA.forbidden_arcs.size(); j++) {
+
+				int firstA = vertexA.forbidden_arcs[j].first;
+				int secondA = vertexA.forbidden_arcs[j].second;
+
+				if(firstA == first || firstA == second) {
+
+					flag++;
+				} 
+				if(secondA == first || secondA == second) {
+
+					flag++;
+				}
+			}
+
+			if(flag == 2) {
+
+				verification_equal_arcs = true;
+				break;
+			}
+			
+		}
+
+		
+		if(verification_equal_arcs and !verification_visited ) {
 		
 			/* Por fim verificamos se o vértice está ou não na lista de adjacentes	*/
 			bool verification_adjVertex = false;
@@ -82,7 +115,7 @@ void Graph::addVertexAdj(NodeInfo* vertex) {
 			}
 			
 			if(!verification_adjVertex) {
-
+				cout << "adicionou" << endl;
 				adjList->push_back(vertexA);
 			}
 		}
@@ -94,22 +127,55 @@ void Graph::addVertexAdj(NodeInfo* vertex) {
 /* Inicializa a partir de um nó aleatorio que chamaremos de root	*/
 NodeInfo* Graph::DFS(NodeInfo *root) {
 	
+	cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<Inicio do DFS>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << endl;
+	cout << "Root escolhido: ";
+
+	for(int i = 0; i < root->forbidden_arcs.size(); i++) 
+			cout << root->forbidden_arcs[i].first << " " << root->forbidden_arcs[i].second << " ";
+
+	cout << endl;
+
 	visited->push_back(*root); // Adiciona o vértice a aqueles que foram visitados
 	addVertexAdj(root);
-
+	
+	cout << "tamanho da lista adjacente: " << adjList->size() << endl;
 	while(!adjList->empty()) {
 		/* Adiciona o ultimo elemento do stack aos visitados	*/
 		/* Além disso, adiciona a lista de vértices adjacentes	*/
 		NodeInfo nodeLast = adjList->back();
 		visited->push_back(nodeLast);
-		cout << nodeLast.forbidden_arcs.size() << endl;
+		
+		
+		cout << "Lista adjacente: ";
+
+		for(auto adj : *adjList) {
+
+			for(int i = 0; i < adj.forbidden_arcs.size(); i++) {
+				cout << "(" << adj.forbidden_arcs[i].first << " " << adj.forbidden_arcs[i].second << " ";
+			}
+			cout << ") " << endl;
+		}
 		adjList->pop_back(); // Remove da lista o ultimo elemento
 		addVertexAdj(&nodeLast);
-		cout << "here" << endl;
+
+		
+		cout << endl;
+
+		cout << "Lista de Visitados: ";
+		for(auto visit : *visited) {
+			
+			for(int i = 0; i < visit.forbidden_arcs.size(); i++)
+				cout << "(" << visit.forbidden_arcs[i].first << " " << visit.forbidden_arcs[i].second << " ";
+
+			cout << ") " << endl;
+		}
+		
+		cout << endl;
 	}
 
 	NodeInfo* lastNode = new NodeInfo();
 	*lastNode = visited->back();
+	cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<End do DFS>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << endl;
 	return lastNode;
 
 
@@ -282,14 +348,6 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 		
 	}
 	
-	node->forbidden_arcs.clear(); // Limpa o vetor para evitar erros
-
-	cout << "Node Chosen: ";
-	for(int i = 0; i < node->subtours[node->chosen].size(); i++) {
-
-		cout << node->subtours[node->chosen][i] << " ";
-	}
-	cout << endl;
 	
 }
 
@@ -344,10 +402,10 @@ void bnb_solve(Data* data) {
 
 			for(int i = 0; i < (*it).forbidden_arcs.size(); i++) {
 				
-				cout << (*it).forbidden_arcs[i].first << " " << (*it).forbidden_arcs[i].second << endl;
+				cout << (*it).forbidden_arcs[i].first << " " << (*it).forbidden_arcs[i].second << " ";
 
 			}
-			
+			cout << endl;
 			j++;
 		}
 		
@@ -357,13 +415,13 @@ void bnb_solve(Data* data) {
 		cout << "Arcos proibidos do nó escolhido: ";
 		for(int i = 0; i < node->forbidden_arcs.size(); i++) {
 
-			cout << node->forbidden_arcs[i].first << " " << node->forbidden_arcs[i].second << endl;
+			cout << node->forbidden_arcs[i].first << " " << node->forbidden_arcs[i].second << " ";
 		}
+		cout << endl;
 		hungarian_solve(data, node);
 
 		
 
-		cout << "Antes do primeiro if" << endl;
 		if(node->lower_bound > upper_bound) {
 			
 
@@ -383,18 +441,20 @@ void bnb_solve(Data* data) {
 
 		if(node->feasible) {
 			upper_bound = min(upper_bound, node->lower_bound);
+	
+			cout << "upper_bound: " << upper_bound << endl;
+			getchar();
 		}
 		
 		else {
 			
-			cout << "antes do primeiro for" << endl;
 			int j = node->chosen;
 			for(int i = 0; i < node->subtours[j].size() - 1; i++) {
 				
 			
 				NodeInfo n;
 				n.forbidden_arcs = node->forbidden_arcs;
-
+						
 				n.forbidden_arcs.push_back(make_pair(node->subtours[j][i], node->subtours[j][i+1]));
 				
 				tree.push_back(n);
@@ -402,13 +462,13 @@ void bnb_solve(Data* data) {
 				cout << "Arcos proibidos: ";
 				for(int i = 0; i < n.forbidden_arcs.size(); i++) {
 					
-					cout << n.forbidden_arcs[i].first << " " << n.forbidden_arcs[i].second << endl;
+					cout << n.forbidden_arcs[i].first << " " << n.forbidden_arcs[i].second << " ";
 
 				}
+				cout << endl;
 			}
 
 		
-			cout << "Apos o segundo for" << endl;
 		}
 			
 			
@@ -420,12 +480,10 @@ void bnb_solve(Data* data) {
 				} 
 
 		}
-		cout << "Apos o ultimo for" << endl;
 		k++;
-		getchar();
 	}
 
-
+	cout << upper_bound << endl;
 }
 
 
