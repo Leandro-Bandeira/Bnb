@@ -394,10 +394,10 @@ void bnb_solve(Data* data) {
 		
 		cout << "--------------------------------------------------------------------------------------------------------" << endl;
 		cout << "interacao: " << k << endl;
-		int j = 0;
+		int p = 0;
 		for(list < NodeInfo >::iterator it = tree.begin(); it != tree.end(); ++it) {
 			
-			cout << "Arcos probidio na nó: " << j << endl;
+			cout << "Arcos probidio na nó: " << p << endl;
 
 			for(int i = 0; i < (*it).forbidden_arcs.size(); i++) {
 				
@@ -405,7 +405,7 @@ void bnb_solve(Data* data) {
 
 			}
 			cout << endl;
-			j++;
+			p++;
 		}
 		
 		cout << "--------------------------------------------------------------------------------------------------------" << endl;
@@ -444,30 +444,27 @@ void bnb_solve(Data* data) {
 			cout << "upper_bound: " << upper_bound << endl;
 		}
 		
-		else {
-			
-			int j = node->chosen;
-			for(int i = 0; i < node->subtours[j].size() - 1; i++) {
+		int j = node->chosen;
+		for(int i = 0; i < node->subtours[j].size() - 1; i++) {
 				
 			
-				NodeInfo n;
-				n.forbidden_arcs = node->forbidden_arcs;
+			NodeInfo n;
+			n.forbidden_arcs = node->forbidden_arcs;
 						
-				n.forbidden_arcs.push_back(make_pair(node->subtours[j][i], node->subtours[j][i+1]));
+			n.forbidden_arcs.push_back(make_pair(node->subtours[j][i], node->subtours[j][i+1]));
 				
-				tree.push_back(n);
+			tree.push_back(n);
 				
-				cout << "Arcos proibidos: ";
-				for(int i = 0; i < n.forbidden_arcs.size(); i++) {
+			cout << "Arcos proibidos: ";
+			for(int i = 0; i < n.forbidden_arcs.size(); i++) {
 					
-					cout << n.forbidden_arcs[i].first << " " << n.forbidden_arcs[i].second << " ";
+				cout << n.forbidden_arcs[i].first << " " << n.forbidden_arcs[i].second << " ";
 
-				}
-				cout << endl;
 			}
+			cout << endl;
+		}
 
 		
-		}
 			
 			
 		for(list < NodeInfo >::iterator it = tree.begin(); it != tree.end(); ++it) {
