@@ -140,9 +140,8 @@ NodeInfo* Graph::DFS(NodeInfo *root) {
 	
 	cout << "tamanho da lista adjacente: " << adjList->size() << endl;
 	while(!adjList->empty()) {
-		/* Adiciona o ultimo elemento do stack aos visitados	*/
-		/* Além disso, adiciona a lista de vértices adjacentes	*/
-		NodeInfo nodeLast = adjList->back();
+		/* Pega o primeiro elemento da lista adjacente e então coloca-o como últomo na lista de visitados	*/
+		NodeInfo nodeLast = adjList->front();
 		visited->push_back(nodeLast);
 		
 		
@@ -155,7 +154,7 @@ NodeInfo* Graph::DFS(NodeInfo *root) {
 			}
 			cout << ") " << endl;
 		}
-		adjList->pop_back(); // Remove da lista o ultimo elemento
+		adjList->pop_front(); // Remove da lista o primeiro elemento
 		addVertexAdj(&nodeLast);
 
 		
@@ -443,7 +442,6 @@ void bnb_solve(Data* data) {
 			upper_bound = min(upper_bound, node->lower_bound);
 	
 			cout << "upper_bound: " << upper_bound << endl;
-			getchar();
 		}
 		
 		else {
@@ -484,6 +482,7 @@ void bnb_solve(Data* data) {
 	}
 
 	cout << upper_bound << endl;
+	getchar();
 }
 
 
