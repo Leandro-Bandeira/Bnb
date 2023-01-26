@@ -319,7 +319,7 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 		node->feasible = false;
 	}
 	else {
-
+		node->chosen = 0;
 		node->feasible = true;
 	}
 	
@@ -327,7 +327,7 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 
 	/* Algoritmo para achar o subtour de menor indice	*/
 	/* Como a matriz está organizada de subtours do menor para o maior, o primeiro subtour possui o menor tamanho	*/
-
+	
 	if(!node->feasible) {
 		
 		int lower_size = node->subtours[0].size();
@@ -442,27 +442,38 @@ void bnb_solve(Data* data) {
 			upper_bound = min(upper_bound, node->lower_bound);
 	
 			cout << "upper_bound: " << upper_bound << endl;
+
+			if(upper_bound < 3400) {
+
+				getchar();
+			}
+			getchar();
 		}
-		
-		int j = node->chosen;
-		for(int i = 0; i < node->subtours[j].size() - 1; i++) {
+	
+
+		else {
+
+				int j =  node->chosen;
+				for(int i = 0; i < node->subtours[j].size() - 1; i++) {
 				
 			
-			NodeInfo n;
-			n.forbidden_arcs = node->forbidden_arcs;
+					NodeInfo n;
+					n.forbidden_arcs = node->forbidden_arcs;
 						
-			n.forbidden_arcs.push_back(make_pair(node->subtours[j][i], node->subtours[j][i+1]));
+					n.forbidden_arcs.push_back(make_pair(node->subtours[j][i], node->subtours[j][i+1]));
 				
-			tree.push_back(n);
+					tree.push_back(n);
 				
-			cout << "Arcos proibidos: ";
-			for(int i = 0; i < n.forbidden_arcs.size(); i++) {
+					cout << "Arcos proibidos: ";
+					for(int i = 0; i < n.forbidden_arcs.size(); i++) {
 					
-				cout << n.forbidden_arcs[i].first << " " << n.forbidden_arcs[i].second << " ";
+						cout << n.forbidden_arcs[i].first << " " << n.forbidden_arcs[i].second << " ";
 
-			}
-			cout << endl;
+					}	
+					cout << endl;
+				}
 		}
+			
 
 		
 			
@@ -470,6 +481,7 @@ void bnb_solve(Data* data) {
 		for(list < NodeInfo >::iterator it = tree.begin(); it != tree.end(); ++it) {
 				
 				if((*it).forbidden_arcs == node->forbidden_arcs) {
+					
 					tree.erase(it);
 					break;
 				} 
