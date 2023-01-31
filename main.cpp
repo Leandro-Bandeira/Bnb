@@ -41,7 +41,7 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 		
 		int first = node->forbidden_arcs[i].first;
 		int second = node->forbidden_arcs[i].second;
-		cost[first][second] = 99999;
+		cost[first][second] = 999999999;
 	}
 	hungarian_problem_t p;
 	int mode = HUNGARIAN_MODE_MINIMIZE_COST;
@@ -186,18 +186,22 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 }
 
 /* Vamos retornar um nó de forma aleatoria	*/
-NodeInfo* chooseNode(list < NodeInfo >* tree) {
+NodeInfo*  chooseNode(list < NodeInfo >* tree, int& choice) {
 	
 	unsigned seed = time(0);
 	srand(seed);
-	int i = rand() % tree->size(); // Escolhe um indice aleatorio da arvore
-	int j = 0;
-
-	/* Escolhemos um vértice aleatorio para iniciar o problema */
-	list < NodeInfo >::iterator it;
-	NodeInfo* chosenNode;
+	choice = (rand() % 2) + 1; // Escolhe um indice aleatorio da arvore
+		
 	
-	return chosenNode;
+
+	switch(choice) {
+
+		case 1:
+			return &tree->back();
+		case 2:
+			return &tree->front();
+	}
+	
 
 }
 
@@ -208,16 +212,20 @@ void bnb_solve(Data* data) {
 	
 	NodeInfo root; // Raiz do problema
 
-	hungarian_solve(data, &root);
+//	hungarian_solve(data, &root);
 
 	list < NodeInfo > tree; // Criação da nossa árvore
 
 	tree.push_back(root); // Adiciona o primeiro nó que é a raiz
 	double upper_bound = numeric_limits<double>::infinity();
-	
 	int k = 0;
 	while(!tree.empty()) {
 		
+		if(tree.size() == 1) {
+			cout << "1" << endl;
+			getchar();
+		}
+		int choice = 0;
 		cout << "--------------------------------------------------------------------------------------------------------" << endl;
 		cout << "interacao: " << k << endl;
 		int p = 0;
@@ -227,39 +235,37 @@ void bnb_solve(Data* data) {
 
 			for(int i = 0; i < (*it).forbidden_arcs.size(); i++) {
 				
+				cout << "( ";
 				cout << (*it).forbidden_arcs[i].first << " " << (*it).forbidden_arcs[i].second << " ";
-
+				cout << ")";
 			}
 			cout << endl;
 			p++;
 		}
 		
 		cout << "--------------------------------------------------------------------------------------------------------" << endl;
-		//auto node = chooseNode(&tree);
-		auto node = &tree.back();
-		
+		auto node = chooseNode(&tree, choice);
+
 		cout << "Arcos proibidos do nó escolhido: ";
 		for(int i = 0; i < node->forbidden_arcs.size(); i++) {
-
+			cout << "( ";
 			cout << node->forbidden_arcs[i].first << " " << node->forbidden_arcs[i].second << " ";
+			cout << ")";
 		}
 		cout << endl;
 		hungarian_solve(data, node);
 
-		if(node->lower_bound > upper_bound) {
+		if(node->lower_bound >= upper_bound) {
 			
-			for(list < NodeInfo >::iterator it = tree.begin(); it != tree.end(); ++it) {
-				
-				if((*it).forbidden_arcs == node->forbidden_arcs) {
 
-					tree.erase(it);
-					break;
+			if(choice == 1) {
 
-				} 
-
+				tree.pop_back();
 			}
-			
+			else {
 
+				tree.pop_front();
+			}
 			continue;
 		}
 
@@ -268,45 +274,76 @@ void bnb_solve(Data* data) {
 	
 			cout << "upper_bound: " << upper_bound << endl;
 
+
+			if(choice == 1) {
+				
+				tree.pop_back();
+			}
+			else {
+				
+				tree.pop_front();
+			}
+			continue;
+
 		}
 	
-		else{
-				int j =  node->chosen;
-				for(int i = 0; i < node->subtours[j].size() - 1; i++) {
-				
-					NodeInfo n;
-					n.forbidden_arcs = node->forbidden_arcs;
-						
-					n.forbidden_arcs.push_back(make_pair(node->subtours[j][i], node->subtours[j][i+1]));
-				
-					tree.push_back(n);
-				
-					cout << "Arcos proibidos: ";
-					for(int i = 0; i < n.forbidden_arcs.size(); i++) {
-					
-						cout << n.forbidden_arcs[i].first << " " << n.forbidden_arcs[i].second << " ";
+	
+	/* Criamos um vector que contém os novos nós, pois colocamos aqui temporariamente, apagamentos de fato o ultimo nó e então colocamos na árvore	*/
 
-					}	
-					cout << endl;
-				}
+		vector < NodeInfo > new_nodes;
+		new_nodes.clear();
+		int j =  node->chosen;
+		for(int i = 0; i < node->subtours[j].size() - 1; i++) {
+				
+			NodeInfo n;
+			n.forbidden_arcs = node->forbidden_arcs;
+						
+			n.forbidden_arcs.push_back(make_pair(node->subtours[j][i], node->subtours[j][i+1]));
+			
+			if(choice == 1) {
+
+				new_nodes.push_back(n);
+			}
+			else {
+
+				tree.push_back(n);
+			}
+				
+			cout << "Arcos proibidos dos filhos: ";
+			for(int i = 0; i < n.forbidden_arcs.size(); i++) {
+					
+				cout << "( ";
+				cout << n.forbidden_arcs[i].first << " " << n.forbidden_arcs[i].second << " ";
+				cout << ") ";
+			}	
+			cout << endl;
 		}
 
 			
 
+		cout << "choice: " << choice << endl;
+		cout << "tree Size: " << tree.size() << endl;
 		
+		
+		if(choice == 1) {
 			
-			
-		for(list < NodeInfo >::iterator it = tree.begin(); it != tree.end(); ++it) {
-				
-				if((*it).forbidden_arcs == node->forbidden_arcs) {
-					
-					tree.erase(it);
-					break;
-				} 
+			/* Apaga de fato o ultimo elemento e adiciona os novos	*/
+			tree.pop_back();
 
+			for(int i = 0; i < new_nodes.size(); i++) {
+
+				tree.push_back(new_nodes[i]);
+			}
+			cout << "here" << endl;
+		
+		}
+		else {
+
+			tree.pop_front();
+			cout << "here2" << endl;
 		}
 		k++;
-		
+		getchar();
 	}
 
 	cout << upper_bound << endl;
