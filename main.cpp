@@ -188,22 +188,19 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 /* Vamos retornar um nó de forma aleatoria	*/
 NodeInfo*  chooseNode(list < NodeInfo >* tree, int& choice) {
 	
-	unsigned seed = time(0);
-	srand(seed);
-	choice = (rand() % 2) + 1; // Escolhe um indice aleatorio da arvore
-		
-	
+	if(choice == 1){
 
-	switch(choice) {
+		return &(tree->back());
+	} 
+	else {
 
-		case 1:
-			return &tree->back();
-		case 2:
-			return &tree->front();
+		return &(tree->front());
 	}
-	
 
 }
+
+
+
 
 /* Função que resolve o BNB	*/
 void bnb_solve(Data* data) {
@@ -219,13 +216,10 @@ void bnb_solve(Data* data) {
 	tree.push_back(root); // Adiciona o primeiro nó que é a raiz
 	double upper_bound = numeric_limits<double>::infinity();
 	int k = 0;
+	int choice = 1; // 1 -> Back 2 -> front
+
 	while(!tree.empty()) {
 		
-		if(tree.size() == 1) {
-			cout << "1" << endl;
-			getchar();
-		}
-		int choice = 0;
 		cout << "--------------------------------------------------------------------------------------------------------" << endl;
 		cout << "interacao: " << k << endl;
 		int p = 0;
@@ -245,6 +239,7 @@ void bnb_solve(Data* data) {
 		
 		cout << "--------------------------------------------------------------------------------------------------------" << endl;
 		auto node = chooseNode(&tree, choice);
+		
 
 		cout << "Arcos proibidos do nó escolhido: ";
 		for(int i = 0; i < node->forbidden_arcs.size(); i++) {
@@ -254,7 +249,7 @@ void bnb_solve(Data* data) {
 		}
 		cout << endl;
 		hungarian_solve(data, node);
-
+		
 		if(node->lower_bound >= upper_bound) {
 			
 
@@ -343,7 +338,7 @@ void bnb_solve(Data* data) {
 			cout << "here2" << endl;
 		}
 		k++;
-		getchar();
+
 	}
 
 	cout << upper_bound << endl;
