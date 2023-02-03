@@ -7,7 +7,7 @@ using namespace std;
 #include <vector>
 #include <list>
 #include <limits>
-
+#include <time.h>
 
 /* Indica a estrutura do nó	*/
 typedef struct {
@@ -39,6 +39,7 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 	
 	for(int i = 0; i < node->forbidden_arcs.size(); i++) {
 		
+		cout << "here" << endl;
 		int first = node->forbidden_arcs[i].first;
 		int second = node->forbidden_arcs[i].second;
 		cost[first][second] = 999999999;
@@ -48,22 +49,16 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 	hungarian_init(&p, cost, data->getDimension(), data->getDimension(), mode); // Carregando o problema
 
 	node->lower_bound = hungarian_solve(&p); // Armazena o valor da função objetivo do algoritmo hungaro
-	cout << "Obj. value: " << node->lower_bound << endl;
+	//cout << "Obj. value: " << node->lower_bound << endl;
 
-	cout << "Assignment" << endl;
-	hungarian_print_assignment(&p);
+	//cout << "Assignment" << endl;
+	//hungarian_print_assignment(&p);
 	
 	/* Criação da matriz que retorna do problema de AP	*/	
 	int rows = p.num_rows;
 	int cols = p.num_cols;
-	int ** apMatrix = new int *[p.num_rows];
-	for(int i = 0; i < rows; i++) {
-
-		for(int j = 0; j < cols; j++) {
-
-			apMatrix[i] = new int[cols];
-		}
-	}
+	int apMatrix[rows][cols];
+	
 
 	for(int i = 0; i < rows; i++) {
 
@@ -136,6 +131,7 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 				return A.size() < B.size();
 	});
 	
+	/*
 	for(auto line: subtours) {
 
 		for(int i = 0; i < line.size(); i++) {
@@ -146,6 +142,7 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 		cout << endl;
 	}
 	
+	*/
 	node->subtours = subtours; // atualiza o subtours do nó
 	
 	/* Verifica se o nó é viável ou não	*/
@@ -181,45 +178,56 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 		node->chosen = id; // indice do subtour de menor tamanho
 		
 	}
+
+	
+	
 	
 	
 }
 
 /* Vamos retornar um nó de forma aleatoria	*/
 NodeInfo*  chooseNode(list < NodeInfo >* tree, int& choice) {
-	
-	if(choice == 1){
 
-		return &(tree->back());
-	} 
+
+	/*
+	if(tree->back().lower_bound >= tree->front().lower_bound) {
+		
+		choice = 2;
+		return &tree->front();
+	}
 	else {
 
-		return &(tree->front());
+		choice = 1;
+		return &tree->back();
 	}
-
+	*/
+	return &tree->back();
 }
 
 
 
 
 /* Função que resolve o BNB	*/
-void bnb_solve(Data* data) {
+double bnb_solve(Data* data) {
 	double obj_value;
 	int n = data->getDimension(); // Tamanho da instancia
 	
 	NodeInfo root; // Raiz do problema
 
-//	hungarian_solve(data, &root);
-
+	//hungarian_solve(data, &root);
 	list < NodeInfo > tree; // Criação da nossa árvore
 
 	tree.push_back(root); // Adiciona o primeiro nó que é a raiz
 	double upper_bound = numeric_limits<double>::infinity();
+	//double upper_bound = 6859;
 	int k = 0;
 	int choice = 1; // 1 -> Back 2 -> front
-
+	cout << "funcionando no back" << endl;
+	getchar();
+    time_t t_ini = time(NULL);
 	while(!tree.empty()) {
 		
+		/*
 		cout << "--------------------------------------------------------------------------------------------------------" << endl;
 		cout << "interacao: " << k << endl;
 		int p = 0;
@@ -237,21 +245,25 @@ void bnb_solve(Data* data) {
 			p++;
 		}
 		
-		cout << "--------------------------------------------------------------------------------------------------------" << endl;
+		cout << "--------------------------------------------------------------------------------------------------------" << endl;*/
+
 		auto node = chooseNode(&tree, choice);
 		
-
+		
+		/*
 		cout << "Arcos proibidos do nó escolhido: ";
 		for(int i = 0; i < node->forbidden_arcs.size(); i++) {
 			cout << "( ";
 			cout << node->forbidden_arcs[i].first << " " << node->forbidden_arcs[i].second << " ";
 			cout << ")";
 		}
-		cout << endl;
+		cout << endl; */
+
 		hungarian_solve(data, node);
-		
+
+
 		if(node->lower_bound >= upper_bound) {
-			
+	
 
 			if(choice == 1) {
 
@@ -269,7 +281,6 @@ void bnb_solve(Data* data) {
 	
 			cout << "upper_bound: " << upper_bound << endl;
 
-
 			if(choice == 1) {
 				
 				tree.pop_back();
@@ -278,6 +289,15 @@ void bnb_solve(Data* data) {
 				
 				tree.pop_front();
 			}
+			
+			time_t t_mid = time(NULL);
+			if(upper_bound == 2085) {
+
+				cout << "achou a solução" << endl;
+				cout << difftime(t_ini, t_mid) << endl;
+				getchar();
+			}
+		
 			continue;
 
 		}
@@ -304,6 +324,7 @@ void bnb_solve(Data* data) {
 				tree.push_back(n);
 			}
 				
+			/*
 			cout << "Arcos proibidos dos filhos: ";
 			for(int i = 0; i < n.forbidden_arcs.size(); i++) {
 					
@@ -312,6 +333,7 @@ void bnb_solve(Data* data) {
 				cout << ") ";
 			}	
 			cout << endl;
+			*/
 		}
 
 			
@@ -340,9 +362,8 @@ void bnb_solve(Data* data) {
 		k++;
 
 	}
-
-	cout << upper_bound << endl;
-	getchar();
+	
+	return upper_bound;
 }
 
 
@@ -353,9 +374,14 @@ int main(int argc, char** argv) {
 
 	cout << "-----------------------------" << endl;
 	
+	time_t t_ini = time(NULL);
 		
-	bnb_solve(data);
+	double upper_bound =bnb_solve(data);
 
+	time_t t_fim = time(NULL);
+	float tempo = difftime(t_fim, t_ini);
+	cout << upper_bound << " " <<  tempo << '\n';
+	cout << "funcionando sem ILS e maior igual , burma14, retirando alguns for" << endl;
 	delete data;
 	return 0;
 }
