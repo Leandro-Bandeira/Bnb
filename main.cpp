@@ -39,7 +39,6 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 	
 	for(int i = 0; i < node->forbidden_arcs.size(); i++) {
 		
-		cout << "here" << endl;
 		int first = node->forbidden_arcs[i].first;
 		int second = node->forbidden_arcs[i].second;
 		cost[first][second] = 999999999;
@@ -57,19 +56,8 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 	/* Criação da matriz que retorna do problema de AP	*/	
 	int rows = p.num_rows;
 	int cols = p.num_cols;
-	int apMatrix[rows][cols];
-	
-
-	for(int i = 0; i < rows; i++) {
-
-		for(int j = 0; j < cols; j++) {
-
-			apMatrix[i][j] = p.assignment[i][j];
-		}
-	}
 	
 	/* Fim da criação de matriz	*/
-	hungarian_free(&p);
 	for (int i = 0; i < data->getDimension(); i++) delete [] cost[i];
 	delete [] cost;
 	
@@ -108,7 +96,7 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 					
 			for(int j = 0; j < cols; j++) {
 
-				if(apMatrix[line][j] == 1) {
+				if(p.assignment[line][j] == 1) {
 					subtour.push_back(j);
 					line = j;
 					break;
@@ -131,18 +119,6 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 				return A.size() < B.size();
 	});
 	
-	/*
-	for(auto line: subtours) {
-
-		for(int i = 0; i < line.size(); i++) {
-
-			cout << line[i] << " ";
-			continue;
-		}
-		cout << endl;
-	}
-	
-	*/
 	node->subtours = subtours; // atualiza o subtours do nó
 	
 	/* Verifica se o nó é viável ou não	*/
@@ -157,6 +133,7 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 	
 	int id = 0;
 
+	hungarian_free(&p);
 	/* Algoritmo para achar o subtour de menor indice	*/
 	/* Como a matriz está organizada de subtours do menor para o maior, o primeiro subtour possui o menor tamanho	*/
 	
@@ -189,19 +166,12 @@ void hungarian_solve(Data* data, NodeInfo* node) {
 NodeInfo*  chooseNode(list < NodeInfo >* tree, int& choice) {
 
 
-	/*
-	if(tree->back().lower_bound >= tree->front().lower_bound) {
-		
-		choice = 2;
-		return &tree->front();
-	}
-	else {
+	if(choice == 1) {
 
-		choice = 1;
 		return &tree->back();
 	}
-	*/
-	return &tree->back();
+
+	return &tree->front();
 }
 
 
@@ -219,49 +189,20 @@ double bnb_solve(Data* data) {
 
 	tree.push_back(root); // Adiciona o primeiro nó que é a raiz
 	double upper_bound = numeric_limits<double>::infinity();
-	//double upper_bound = 6859;
 	int k = 0;
 	int choice = 1; // 1 -> Back 2 -> front
 	cout << "funcionando no back" << endl;
 	getchar();
-    time_t t_ini = time(NULL);
+	NodeInfo nodeTemp;
+
 	while(!tree.empty()) {
 		
-		/*
-		cout << "--------------------------------------------------------------------------------------------------------" << endl;
-		cout << "interacao: " << k << endl;
-		int p = 0;
-		for(list < NodeInfo >::iterator it = tree.begin(); it != tree.end(); ++it) {
-			
-			cout << "Arcos probidio na nó: " << p << endl;
-
-			for(int i = 0; i < (*it).forbidden_arcs.size(); i++) {
-				
-				cout << "( ";
-				cout << (*it).forbidden_arcs[i].first << " " << (*it).forbidden_arcs[i].second << " ";
-				cout << ")";
-			}
-			cout << endl;
-			p++;
-		}
-		
-		cout << "--------------------------------------------------------------------------------------------------------" << endl;*/
 
 		auto node = chooseNode(&tree, choice);
 		
-		
-		/*
-		cout << "Arcos proibidos do nó escolhido: ";
-		for(int i = 0; i < node->forbidden_arcs.size(); i++) {
-			cout << "( ";
-			cout << node->forbidden_arcs[i].first << " " << node->forbidden_arcs[i].second << " ";
-			cout << ")";
-		}
-		cout << endl; */
-
 		hungarian_solve(data, node);
-
-
+		nodeTemp = *node; // Para podermos apagar o ultimo caso seja o back	
+		
 		if(node->lower_bound >= upper_bound) {
 	
 
@@ -279,8 +220,6 @@ double bnb_solve(Data* data) {
 		if(node->feasible) {
 			upper_bound = min(upper_bound, node->lower_bound);
 	
-			cout << "upper_bound: " << upper_bound << endl;
-
 			if(choice == 1) {
 				
 				tree.pop_back();
@@ -290,75 +229,38 @@ double bnb_solve(Data* data) {
 				tree.pop_front();
 			}
 			
-			time_t t_mid = time(NULL);
-			if(upper_bound == 2085) {
-
-				cout << "achou a solução" << endl;
-				cout << difftime(t_ini, t_mid) << endl;
-				getchar();
-			}
 		
 			continue;
 
 		}
 	
 	
-	/* Criamos um vector que contém os novos nós, pois colocamos aqui temporariamente, apagamentos de fato o ultimo nó e então colocamos na árvore	*/
+		/* Criamos um vector que contém os novos nós, pois colocamos aqui temporariamente, apagamentos de fato o ultimo nó e então colocamos na árvore	*/
 
-		vector < NodeInfo > new_nodes;
-		new_nodes.clear();
 		int j =  node->chosen;
-		for(int i = 0; i < node->subtours[j].size() - 1; i++) {
-				
-			NodeInfo n;
-			n.forbidden_arcs = node->forbidden_arcs;
-						
-			n.forbidden_arcs.push_back(make_pair(node->subtours[j][i], node->subtours[j][i+1]));
-			
-			if(choice == 1) {
-
-				new_nodes.push_back(n);
-			}
-			else {
-
-				tree.push_back(n);
-			}
-				
-			/*
-			cout << "Arcos proibidos dos filhos: ";
-			for(int i = 0; i < n.forbidden_arcs.size(); i++) {
-					
-				cout << "( ";
-				cout << n.forbidden_arcs[i].first << " " << n.forbidden_arcs[i].second << " ";
-				cout << ") ";
-			}	
-			cout << endl;
-			*/
-		}
-
-			
-
-		cout << "choice: " << choice << endl;
-		cout << "tree Size: " << tree.size() << endl;
-		
-		
 		if(choice == 1) {
-			
-			/* Apaga de fato o ultimo elemento e adiciona os novos	*/
+
 			tree.pop_back();
-
-			for(int i = 0; i < new_nodes.size(); i++) {
-
-				tree.push_back(new_nodes[i]);
-			}
-			cout << "here" << endl;
-		
 		}
 		else {
 
 			tree.pop_front();
-			cout << "here2" << endl;
 		}
+		
+	
+
+		for(int i = 0; i < nodeTemp.subtours[j].size() - 1; i++) {
+				
+			NodeInfo n;
+			n.forbidden_arcs = nodeTemp.forbidden_arcs;
+						
+			n.forbidden_arcs.push_back(make_pair(nodeTemp.subtours[j][i], nodeTemp.subtours[j][i+1]));
+			
+			tree.push_back(n);
+
+		}
+
+		
 		k++;
 
 	}
@@ -381,7 +283,7 @@ int main(int argc, char** argv) {
 	time_t t_fim = time(NULL);
 	float tempo = difftime(t_fim, t_ini);
 	cout << upper_bound << " " <<  tempo << '\n';
-	cout << "funcionando sem ILS e maior igual , burma14, retirando alguns for" << endl;
+	cout << "funcionando com ILS e maior igual , att48, retirando alguns for" << endl;
 	delete data;
 	return 0;
 }
