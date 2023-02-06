@@ -8,6 +8,7 @@ using namespace std;
 #include <list>
 #include <limits>
 #include <time.h>
+#include <queue>
 
 /* Indica a estrutura do nó	*/
 typedef struct {
@@ -178,34 +179,82 @@ NodeInfo*  chooseNode(list < NodeInfo >* tree, int& choice) {
 
 
 /* Função que resolve o BNB	*/
-double bnb_solve(Data* data) {
+double bnb_solve(Data* data, int valueChoice) {
 	double obj_value;
 	int n = data->getDimension(); // Tamanho da instancia
 	
 	NodeInfo root; // Raiz do problema
 
-	//hungarian_solve(data, &root);
-	list < NodeInfo > tree; // Criação da nossa árvore
-
-	tree.push_back(root); // Adiciona o primeiro nó que é a raiz
 	double upper_bound = numeric_limits<double>::infinity();
 	int k = 0;
-	int choice = 1; // 1 -> Back 2 -> front
-	cout << "funcionando no back" << endl;
+	int choice = valueChoice; // 1 -> Back 2 -> front
+	
+	
+	if(valueChoice == 1) {
+
+		cout << "Funcionando no back" << endl;
+	}
+	else if (valueChoice == 2) {
+		cout << "Funcionando no front" << endl;
+	}
+	else {
+
+		cout << "Funcionando no lower bound" << endl;
+	}
+
 	getchar();
-	NodeInfo nodeTemp;
-
-	while(!tree.empty()) {
-		
-
-		auto node = chooseNode(&tree, choice);
-		
-		hungarian_solve(data, node);
-		nodeTemp = *node; // Para podermos apagar o ultimo caso seja o back	
-		
-		if(node->lower_bound >= upper_bound) {
 	
+	if(choice == 1 or choice == 2) {
+		NodeInfo nodeTemp;
 
+		//hungarian_solve(data, &root);
+		list < NodeInfo > tree; // Criação da nossa árvore
+
+		tree.push_back(root); // Adiciona o primeiro nó que é a raiz
+
+		while(!tree.empty()) {
+			
+
+			auto node = chooseNode(&tree, choice);
+			
+			hungarian_solve(data, node);
+			nodeTemp = *node; // Para podermos apagar o ultimo caso seja o back	
+			
+			if(node->lower_bound >= upper_bound) {
+		
+
+				if(choice == 1) {
+
+					tree.pop_back();
+				}
+				else {
+
+					tree.pop_front();
+				}
+				continue;
+			}
+
+			if(node->feasible) {
+				upper_bound = min(upper_bound, node->lower_bound);
+		
+				if(choice == 1) {
+					
+					tree.pop_back();
+				}
+				else {
+					
+					tree.pop_front();
+				}
+				
+			
+				continue;
+
+			}
+		
+		
+			/* Criamos um vector que contém os novos nós, pois colocamos aqui temporariamente, apagamentos de fato o ultimo nó e então colocamos na árvore	*/
+
+			int j =  node->chosen;
 			if(choice == 1) {
 
 				tree.pop_back();
@@ -214,57 +263,79 @@ double bnb_solve(Data* data) {
 
 				tree.pop_front();
 			}
-			continue;
-		}
-
-		if(node->feasible) {
-			upper_bound = min(upper_bound, node->lower_bound);
-	
-			if(choice == 1) {
-				
-				tree.pop_back();
-			}
-			else {
-				
-				tree.pop_front();
-			}
 			
 		
-			continue;
 
-		}
-	
-	
-		/* Criamos um vector que contém os novos nós, pois colocamos aqui temporariamente, apagamentos de fato o ultimo nó e então colocamos na árvore	*/
-
-		int j =  node->chosen;
-		if(choice == 1) {
-
-			tree.pop_back();
-		}
-		else {
-
-			tree.pop_front();
-		}
-		
-	
-
-		for(int i = 0; i < nodeTemp.subtours[j].size() - 1; i++) {
+			for(int i = 0; i < nodeTemp.subtours[j].size() - 1; i++) {
+					
+				NodeInfo n;
+				n.forbidden_arcs = nodeTemp.forbidden_arcs;
+							
+				n.forbidden_arcs.push_back(make_pair(nodeTemp.subtours[j][i], nodeTemp.subtours[j][i+1]));
 				
-			NodeInfo n;
-			n.forbidden_arcs = nodeTemp.forbidden_arcs;
-						
-			n.forbidden_arcs.push_back(make_pair(nodeTemp.subtours[j][i], nodeTemp.subtours[j][i+1]));
+				tree.push_back(n);
+
+			}
+
 			
-			tree.push_back(n);
+			k++;
 
 		}
-
-		
-		k++;
-
 	}
 	
+	/* Utiliza priority_queue	*/
+	else {
+		
+		
+		hungarian_solve(data, &root);
+		
+		/* Função lambda que retorna se o primeiro valor é maior que o segundo	*/
+		auto compare = [](NodeInfo nodeA, NodeInfo nodeB){return nodeA.lower_bound >  nodeB.lower_bound;};
+		
+		/* Declração do priority_queue, para utilizar a função lambda anterior	*/
+		priority_queue < NodeInfo, vector < NodeInfo >, decltype(compare) > q(compare);
+		q.push(root);
+		int k = 0;
+		while(!q.empty()) {
+			
+			/* Pega-se o primeiro elemento, caso seja maior que o lower_bound deleta ou seja viável, pegamos sua região válida	*/
+			auto node = q.top();
+			if(node.lower_bound >= upper_bound) {
+
+				q.pop();
+				continue;
+			}
+			
+			if(node.feasible) {
+
+				upper_bound = min(upper_bound, node.lower_bound);
+
+				q.pop();
+				continue;
+			}
+
+			int j = node.chosen;
+			NodeInfo nodeTemp = node;
+			q.pop();
+			
+			/* Caso não, fazemos seus filhos e então resolvemos para armazenar no priority_qeue	*/
+			for(int i = 0; i < nodeTemp.subtours[j].size() - 1; i++) {
+				
+				NodeInfo n;
+
+				n.forbidden_arcs = nodeTemp.forbidden_arcs;
+
+				n.forbidden_arcs.push_back(make_pair(nodeTemp.subtours[j][i], nodeTemp.subtours[j][i + 1]));
+				hungarian_solve(data, &n);
+				q.push(n);
+
+
+			}
+			k++;
+		}
+ 
+
+	}
 	return upper_bound;
 }
 
@@ -274,16 +345,18 @@ int main(int argc, char** argv) {
 	Data * data = new Data(argc, argv[1]);
 	data->readData();
 
+	cout << "Digite o modo de busca: ";
+	int choice;
+	cin >> choice;
 	cout << "-----------------------------" << endl;
 	
 	time_t t_ini = time(NULL);
 		
-	double upper_bound =bnb_solve(data);
+	double upper_bound = bnb_solve(data, choice);
 
 	time_t t_fim = time(NULL);
 	float tempo = difftime(t_fim, t_ini);
 	cout << upper_bound << " " <<  tempo << '\n';
-	cout << "funcionando com ILS e maior igual , att48, retirando alguns for" << endl;
 	delete data;
 	return 0;
 }
